@@ -1,4 +1,5 @@
 import random
+from os import system
 
 def pass_generation(length):
     pass_components = []
@@ -19,13 +20,23 @@ def pass_generation(length):
                 pass_components.append(chr(random.randint(33, 41)))  #Symbol
             case 4:
                 pass_components.append(chr(random.randint(48, 57)))  #Number
-                
     random.shuffle(pass_components)
     return pass_components
 
 def main():
     password = ''
-    pass_length = int(input('Enter the desired password length: '))
+    while (True):
+        try:
+            pass_length = int(input('Enter the desired password length (at least 8 characters): '))
+            if (pass_length < 8):
+                system('CLS')
+                print('Invalid length, please enter length with at least 8 characters')
+                continue
+            break
+        except:
+            system('CLS')
+            print('Please enter a valid, positive integer')
+
     password = ''.join(pass_generation(pass_length))
     print (password)
     print (len(password))
