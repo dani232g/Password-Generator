@@ -44,12 +44,17 @@ def pass_generation(length):
     random.shuffle(pass_components)
     return pass_components
 
-def description_check(description):
-
+def description_check(description, username):
     cursor.execute("SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA`='pass_schema' AND `TABLE_NAME`='userdb'")
     columns = cursor.fetchall()
+    
     if ((description, ) in columns):
-        return True
+        cursor.execute("SELECT " + description + " FROM pass_schema.userdb WHERE username = '" + username + "';")
+        password = cursor.fetchall()
+        if password[0][0] == None:
+            return False
+        else:
+            return True
     else:
         return False
 
@@ -59,7 +64,7 @@ def add_column(description):
     try:    
         cursor.execute("ALTER TABLE pass_schema.userdb ADD COLUMN " + description + " VARCHAR(45) NULL AFTER `userpassword`;")
     except:
-        print("Column Failuer")
+        print("Column Failure")
 
 def add_password(user, description, password):
     try:
@@ -69,11 +74,24 @@ def add_password(user, description, password):
     except:
         print('Pass error')
 
+def password_validation():
+    while (True):
+            try:
+                pass_length = int(input('Enter the desired password length (at least 8 characters, maximum 24 characters): '))
+                if (pass_length < 8 or pass_length > 24):
+                    system('CLS')
+                    print('Invalid length, please enter length from 8 to 24 characters')
+                    continue
+                return(pass_length)
+            except:
+                system('CLS')
+                print('Please enter a valid, positive integer')
+
 def main():
-    option = 0
-    password = ''
-    pass_length = 0
-    description = ''
+#    option = 0
+#    password = ''
+#    pass_length = 0
+#    description = ''
     while(True):
         try:
             option = (int(input(welcome_message)))
@@ -87,36 +105,26 @@ def main():
                 case 3:
                     user = input("Please enter your username: ")
                     description = input('Please enter a description to identify the new password: ')
+                    pass_length = password_validation()
                     if (description_check(description)):
-                        print("It EXISTS")
+                        #Here goes the code when the description added by the user already exists in the data base
+                        go_back = input("The description you added already exists, do you wish to replace the existing password? (y/n): ")
+                        if (go_back.lower == 'y'):
+                            print()
+                        else:
+                            print("You will now return to the main menu. Press any key to continue")
                     else:
                         #Here goes the code when the description added by the user does not exist
-                        while (True):
-                            try:
-                                pass_length = int(input('Enter the desired password length (at least 8 characters, maximum 24 characters): '))
-                                if (pass_length < 8 or pass_length > 24):
-                                    system('CLS')
-                                    print('Invalid length, please enter length from 8 to 24 characters')
-                                    continue
-                                break
-                            except:
-                                system('CLS')
-                                print('Please enter a valid, positive integer')
-                    
-                    password = ''.join(pass_generation(pass_length))
-                    add_column(description)
-                    add_password(user, description, password)
-                    print (password)
+                        
+                        password = ''.join(pass_generation(pass_length))
+                        add_column(description)
+                        add_password(user, description, password)
+                        print (password)
                     
                     
         except:
             system("CLS")
             print("Please enter a valid option")
         
-
-    
-
-
-
 
 main()
