@@ -44,25 +44,36 @@ def pass_generation(length):
     random.shuffle(pass_components)
     return pass_components
 
-def description_check(description):
-    #This function will check if the description added by the user already exists in the database, and that there is a password assigned to it
-    #The first IF checks if the description/column exists or not, if the column does exist then we enter the second if where we check if there is an existing password
+def description_check(description, username):
+    #This function will check if the description added by the user already exists in the database.
+    #If the description doesn't exist, we call add_column to add said description as a column in the database, then we call add_password to add the newly generated password into the database.
+    #If the description does exist, we call existing_password_check to verify if the password for said description exists or not.
     cursor.execute("SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA`='pass_schema' AND `TABLE_NAME`='userdb'")
     columns = cursor.fetchall()
     if ((description, ) in columns):
-        return True
+        existing_password_check(description, username)
     else:
-        return False
+        pass_length = password_validation()
+        password = ''.join(pass_generation(pass_length))
+        add_column(description)
+        add_password(username, description, password)
 
 def existing_password_check(description, username):
+    #This function will check if the description entered by the user already has an existing password.
+    #We perform a SELECT query to retrieve the value stored in the database column that matches the description.
+    #If the value is None we know the user has no saved password for said description. We will generate a new password and update the column in the database 
+    #If the value is other than None, then we tell the user to use the "Update existing password" option in the main menu
     cursor.execute("SELECT " + description + " FROM pass_schema.userdb WHERE username = '" + username + "';")
     password = cursor.fetchall()
-    if password[0][0] == None:
-        return False
-    else:
-        return True
-    
+    if password[0][0] != None:
+        cancel = input("A password for " + description + " already exists.\nDo you wish to update your password? (y/n): ")
+        if cancel.lower() == 'n':
+            return
+    pass_length = password_validation()
+    password = ''.join(pass_generation(pass_length))
+    add_password(username, description, password)
 
+    
 def add_column(description):
     #Adds column into the database where the password will be stored
     try:    
@@ -116,32 +127,7 @@ def main():
                     system('CLS')
                     print("You are now generating a new password")
                     description = input('Please enter a description to identify the new password: ')
-                    
-                    if (description_check(description)):
-                        #Here goes the code when the description added by the user already exists
-                        #If the description exists, we check if there is a password for said description. If there is, we ask the user if they want to overwrite it. If there is no password, we generate it.
-                        if (existing_password_check(description, user)):
-                            go_back = input("The description you entered already exists, do you wish to replace the existing password? (y/n): ")
-                            if (go_back.lower() == 'y'):
-                                pass_length = password_validation()
-                                password = ''.join(pass_generation(pass_length))
-                                add_password(user, description, password)
-                            else:
-                                input("You will now return to the main menu. Press Enter to continue ")
-                                continue
-                        else:
-                            pass_length = password_validation()
-                            password = ''.join(pass_generation(pass_length))
-                            add_password(user, description, password)
-
-                    else:
-                        #Here goes the code when the description added by the user does not exist
-                        #First, we verify the password's length is valid. Then, the password is generated. The description is added as a column in the database and then we save the password on said column.
-                        pass_length = password_validation()
-                        password = ''.join(pass_generation(pass_length))
-                        add_column(description)
-                        add_password(user, description, password)
-                        
+                    description_check(description, user)   
                     input('Press Enter to return to the main menu')
         except:
             system("CLS")
