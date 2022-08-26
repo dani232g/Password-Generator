@@ -13,6 +13,19 @@ mydb = mysql.connector.connect(
 cursor = mydb.cursor()
 
 
+def get_user_credentials(username):
+  #This block of code will generate a list with all available columns
+  cursor.execute("SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA`='pass_schema' AND `TABLE_NAME`='userdb'")
+  columns = cursor.fetchall()
+  columns.remove(('username',))
+  columns.remove(('userpassword',))
+  descriptions = [item for t in columns for item in t]
+  user_credentials = {}
+  for d in descriptions:
+    cursor.execute("SELECT `" + d + "` FROM pass_schema.userdb WHERE username = '" + username + "';")
+    password = cursor.fetchall()
+    user_credentials[d] = (password[0][0])
+  return user_credentials
 
 def pass_generation(length):
     pass_components = []
@@ -52,7 +65,7 @@ def existing_password_check(description, username):
     #We perform a SELECT query to retrieve the value stored in the database column that matches the description.
     #If the value is None we know the user has no saved password for said description. We will generate a new password and update the column in the database 
     #If the value is other than None, then we tell the user to use the "Update existing password" option in the main menu
-    cursor.execute("SELECT " + description + " FROM pass_schema.userdb WHERE username = '" + username + "';")
+    cursor.execute("SELECT `" + description + "` FROM pass_schema.userdb WHERE username = '" + username + "';")
     password = cursor.fetchall()
     if password[0][0] != None:
         return True
@@ -60,7 +73,8 @@ def existing_password_check(description, username):
 def add_column(description):
     #Adds column into the database where the password will be stored
     try:    
-        cursor.execute("ALTER TABLE pass_schema.userdb ADD COLUMN " + description + " VARCHAR(45) NULL AFTER `userpassword`;")
+        cursor.execute("ALTER TABLE pass_schema.userdb ADD COLUMN `" + description + "` VARCHAR(45) NULL AFTER `userpassword`;")
+        
     except:
         print("Column Failure")
 
@@ -68,7 +82,7 @@ def add_password(user, description, password):
     #Adds a password 
     #Following failing example: UPDATE `pass_schema`.`userdb` SET test2 = '0l'jK161f' WHERE (`username` = 'Alondra');
     try:
-        query= ("UPDATE `pass_schema`.`userdb` SET " + description + " = '" + password + "' WHERE (`username` = '" + user + "');")
+        query= ("UPDATE `pass_schema`.`userdb` SET `" + description + "` = '" + password + "' WHERE (`username` = '" + user + "');")
         cursor.execute(query)
         mydb.commit()
         print ('A password for', description, 'was created. Password:', password)
@@ -99,27 +113,13 @@ def user_authentication(user, user_password):
       return False
     return True  
 
-def retrieve_credentials(username):
-  #This block of code will generate a list with all available columns
-  cursor.execute("SELECT `COLUMN_NAME` FROM `INFORMATION_SCHEMA`.`COLUMNS` WHERE `TABLE_SCHEMA`='pass_schema' AND `TABLE_NAME`='userdb'")
-  columns = cursor.fetchall()
-  del columns[0:2]
-  descriptions = [item for t in columns for item in t]
-  #This block of code will generate a list with all available passwords
-  cursor.execute("SELECT * FROM pass_schema.userdb WHERE username = '" + username + "'")
-  values = cursor.fetchall()
-  passwords = [password for i in values for password in i]
-  del passwords [0:2]
-  #The dict and zip methods are used to create a dictionary, where the description will be the key, and the password will be the value
-  user_credentials = dict(zip(descriptions, passwords))
-  return user_credentials
 
 def main():
     #User login
     user = input("Please enter your username: ")
     user_password = input('Enter your password: ')
     user_exists = user_authentication(user, user_password)
-    welcome_message = '''
+    welcome_message = ' Welcome', user, ''' 
 Press 1 to: Add a new user
 Press 2 to: Delete an user
 Press 3 to: Generate a new password
@@ -158,7 +158,7 @@ Plase select one of the option above: '''
                 case 4:
                     system('CLS')
                     print("You are now retrieving a password")
-                    user_credentials = retrieve_credentials(user)
+                    user_credentials = get_user_credentials(user)
                     for descriptions in user_credentials:
                         print("[" + descriptions + "]", end = " ")
                     description_request = input("\nWhich password do you wish to retrieve?: ")
